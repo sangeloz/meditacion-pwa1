@@ -548,6 +548,8 @@ function showScreen(id) {
   <p style="position:fixed;bottom:12px;left:0;right:0;text-align:center;font-size:10px;color:#2a4a5a;letter-spacing:1px;pointer-events:none;">
     © Creado por Serge Angéloz &nbsp;·&nbsp; Abril 2026 &nbsp;·&nbsp; V1.0.0
   </p>
+<script>
+  if ("serviceWorker" in navigator) {
     window.addEventListener("load", () => {
       navigator.serviceWorker.register("/sw.js")
         .then(r => console.log("SW registrado:", r.scope))

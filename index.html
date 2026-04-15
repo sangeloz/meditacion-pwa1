@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0d1b2a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Meditación">
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/icons/icon-192.png">
+<title>El Testigo de la Respiración</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    min-height: 100vh;
+    background: radial-gradient(ellipse at 30% 20%, #0d1b2a 0%, #060d14 60%, #020609 100%);
+    font-family: 'Georgia', 'Times New Roman', serif;
+    color: #c8d8e8;
+    display: flex; align-items: center; justify-content: center;
+    overflow: hidden; position: relative;
+  }
+  button { outline: none; font-family: inherit; cursor: pointer; }
+  #app { width: 100%; display: flex; align-items: center; justify-content: center; padding: 24px; }
+
+  /* Stars */
+  .star { position: fixed; border-radius: 50%; background: #fff; pointer-events: none; }
+
+  /* Screens */
+  .screen { display: none; text-align: center; animation: fadeIn 1.2s ease; }
+  .screen.active { display: block; }
+  @keyframes fadeIn { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:none; } }
+
+  /* HOME */
+  #home { max-width: 380px; width: 100%; }
+  .home-orb {
+    width: 90px; height: 90px; border-radius: 50%;
+    background: radial-gradient(circle, #4a6fa5 0%, #1a3a5c 60%, transparent 100%);
+    margin: 0 auto 32px;
+    box-shadow: 0 0 60px rgba(74,111,165,0.4);
+  }
+  .home-label { font-size: 13px; letter-spacing: 8px; text-transform: uppercase; color: #7a9fc0; margin-bottom: 12px; font-weight: 400; }
+  .home-title { font-size: 28px; font-weight: 400; color: #dce8f0; line-height: 1.3; margin-bottom: 8px; }
+  .home-sub { font-size: 13px; color: #6a8aaa; margin-bottom: 48px; line-height: 1.8; }
+  .phase-row {
+    display: flex; justify-content: space-between;
+    padding: 8px 16px; margin-bottom: 6px;
+    background: rgba(255,255,255,0.03); border-radius: 8px;
+  }
+  .phase-row span:first-child { font-size: 13px; color: #8aaac0; }
+  .phase-row span:last-child { font-size: 12px; color: #5a7a9a; }
+  .btn-start {
+    margin-top: 40px; padding: 14px 48px;
+    background: transparent; border: 1px solid rgba(74,111,165,0.5);
+    border-radius: 40px; color: #9abcd4; font-size: 13px;
+    letter-spacing: 4px; text-transform: uppercase;
+    transition: all 0.3s; box-shadow: 0 0 20px rgba(74,111,165,0.15);
+    display: block; margin-left: auto; margin-right: auto;
+  }
+  .btn-start:hover { background: rgba(74,111,165,0.15); color: #c8e0f0; }
+  .home-note { font-size: 11px; color: #3a5a7a; margin-top: 16px; }
+
+  /* SESSION */
+  #session { width: 100%; max-width: 420px; }
+  .phase-dots { display: flex; justify-content: center; gap: 8px; margin-bottom: 32px; }
+  .phase-dot { height: 3px; border-radius: 2px; background: rgba(255,255,255,0.15); transition: all 0.5s ease; }
+  .phase-dot.active { background: var(--phase-color); }
+  .phase-info { margin-bottom: 28px; }
+  .phase-tag { font-size: 11px; letter-spacing: 6px; text-transform: uppercase; margin-bottom: 5px; }
+  .phase-name { font-size: 22px; font-weight: 400; color: #dce8f0; }
+
+  /* ORB */
+  .orb-wrap { position: relative; width: 280px; height: 280px; margin: 0 auto 28px; }
+  .orb-svg { position: absolute; top: 0; left: 0; transform: rotate(-90deg); z-index: 1; }
+  .orb-layer { position: absolute; top: 50%; left: 50%; border-radius: 50%; }
+  #orb-outer { width: 220px; height: 220px; margin-top: -110px; margin-left: -110px; z-index: 2; }
+  #orb-mid   { width: 160px; height: 160px; margin-top: -80px;  margin-left: -80px;  z-index: 3; }
+  #orb-core  { width: 90px;  height: 90px;  margin-top: -45px;  margin-left: -45px;  z-index: 4; }
+  .orb-center {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    display: flex; flex-direction: column; align-items: center;
+    z-index: 10; pointer-events: none;
+  }
+  #timer-display {
+    font-size: 28px; font-weight: 300; color: rgba(220,235,248,0.92);
+    letter-spacing: 3px; font-family: 'Courier New', monospace;
+    font-variant-numeric: tabular-nums; line-height: 1;
+  }
+  #breath-label {
+    font-size: 13px; font-weight: 500; letter-spacing: 6px;
+    text-transform: lowercase; margin-top: 10px; padding: 3px 12px;
+    border-radius: 20px; background: rgba(0,0,0,0.45);
+    backdrop-filter: blur(4px); transition: color 0.5s ease, text-shadow 0.5s ease, border-color 0.5s ease;
+  }
+
+  /* CONTROLS */
+  .controls { display: flex; gap: 16px; justify-content: center; align-items: center; }
+  .btn-ctrl {
+    width: 44px; height: 44px; border-radius: 50%;
+    background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+    color: #6a8aaa; font-size: 14px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  #btn-play {
+    width: 64px; height: 64px; border-radius: 50%;
+    border: 1px solid; color: #dce8f0; font-size: 22px;
+    display: flex; align-items: center; justify-content: center;
+    transition: box-shadow 0.3s;
+  }
+  #btn-mute { font-size: 15px; transition: all 0.3s; }
+  #btn-mute.muted { background: rgba(255,255,255,0.10); border-color: rgba(255,255,255,0.25); color: #aabbc0; }
+
+  /* VOICE VOLUME */
+  .voice-row {
+    display: flex; align-items: center; justify-content: center;
+    gap: 10px; margin-top: 20px;
+  }
+  .voice-icon { font-size: 14px; color: #5a7a9a; user-select: none; }
+  #voice-volume {
+    -webkit-appearance: none; appearance: none;
+    width: 130px; height: 3px; border-radius: 2px; outline: none; cursor: pointer;
+    background: linear-gradient(to right, #6a8aaa var(--val, 70%), rgba(255,255,255,0.12) var(--val, 70%));
+  }
+  #voice-volume::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 14px; height: 14px;
+    border-radius: 50%; background: #9abcd4;
+    box-shadow: 0 0 6px rgba(154,188,212,0.5);
+    cursor: pointer;
+  }
+  #voice-volume::-moz-range-thumb {
+    width: 14px; height: 14px; border: none;
+    border-radius: 50%; background: #9abcd4; cursor: pointer;
+  }
+  .voice-label { font-size: 10px; letter-spacing: 3px; color: #3a5a7a; text-transform: uppercase; }
+
+  /* DONE */
+  #done { max-width: 360px; width: 100%; }
+  .done-orb {
+    width: 70px; height: 70px; border-radius: 50%;
+    background: radial-gradient(circle, #9e7a5a 0%, #4a2a1a 60%, transparent 100%);
+    margin: 0 auto 28px; box-shadow: 0 0 40px rgba(158,122,90,0.3);
+  }
+  .done-title { font-size: 22px; font-weight: 400; color: #dce8f0; margin-bottom: 12px; }
+  .done-text { font-size: 14px; color: #6a8aaa; line-height: 1.8; margin-bottom: 40px; }
+  .btn-back {
+    padding: 12px 36px; background: transparent;
+    border: 1px solid rgba(158,122,90,0.4); border-radius: 40px;
+    color: #9e8a7a; font-size: 12px; letter-spacing: 4px;
+    text-transform: uppercase;
+  }
+</style>
+</head>
+<body>
+
+<div id="app">
+  <!-- HOME -->
+  <div id="home" class="screen active">
+    <div class="home-orb"></div>
+    <p class="home-label">Meditación Guiada</p>
+    <h1 class="home-title">El Testigo<br>de la Respiración</h1>
+    <p class="home-sub">Sesión I · 18 minutos · 4 fases</p>
+    <div id="phase-list"></div>
+    <button class="btn-start" onclick="startSession()">Comenzar</button>
+    <p class="home-note">Activa el sonido · Cierra los ojos tras iniciar</p>
+  </div>
+
+  <!-- SESSION -->
+  <div id="session" class="screen">
+    <div class="phase-dots" id="phase-dots"></div>
+    <div class="phase-info">
+      <p class="phase-tag" id="phase-tag"></p>
+      <h2 class="phase-name" id="phase-name"></h2>
+    </div>
+    <div class="orb-wrap">
+      <svg class="orb-svg" width="280" height="280">
+        <circle cx="140" cy="140" r="134" fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+        <circle id="progress-ring" cx="140" cy="140" r="134" fill="none" stroke-width="1.5"
+          stroke-dasharray="0 842" stroke-opacity="0.5"/>
+      </svg>
+      <div class="orb-layer" id="orb-outer"></div>
+      <div class="orb-layer" id="orb-mid"></div>
+      <div class="orb-layer" id="orb-core"></div>
+      <div class="orb-center">
+        <span id="timer-display">00:00</span>
+        <span id="breath-label">inhala</span>
+      </div>
+    </div>
+    <div class="controls">
+      <button class="btn-ctrl" title="Siguiente fase" onclick="skipPhase()">⏭</button>
+      <button id="btn-play" onclick="togglePause()">⏸</button>
+      <button class="btn-ctrl" id="btn-mute"  title="Silenciar chimes" onclick="toggleMute()">🔔</button>
+      <button class="btn-ctrl" id="btn-voice" title="Silenciar voz"    onclick="toggleVoice()">🗣️</button>
+      <button class="btn-ctrl" title="Terminar" onclick="resetSession()">✕</button>
+    </div>
+  </div>
+
+  <!-- DONE -->
+  <div id="done" class="screen">
+    <div class="done-orb"></div>
+    <h2 class="done-title">Sesión completada</h2>
+    <p class="done-text">Has recorrido el ciclo completo.<br>Cuando estés listo, anota lo que<br>hayas observado.</p>
+    <button class="btn-back" onclick="resetSession()">Volver</button>
+  </div>
+</div>
+
+<script>
+const PHASES = [
+  { id:"prep",      title:"Preparación", subtitle:"Llega al momento",  duration:120, color:"#4a6fa5",
+    breath:[4000,2000,4000,2000],
+    intro:"Cierra los ojos. No hagas nada todavía. Solo nota que estás aquí, en este cuerpo, en este momento. Deja que el ruido mental exista sin combatirlo.",
+    reminder:"Estás aquí. Solo observa." },
+  { id:"anclaje",   title:"Fase I",      subtitle:"El Anclaje",         duration:300, color:"#5e8a6e",
+    breath:[4000,3000,6000,3000],
+    intro:"Lleva la atención a las fosas nasales. No controles la respiración, solo obsérvala. El aire entrando, ligeramente frío. El aire saliendo, ligeramente tibio. Ese pequeño umbral es tu ancla. Cuando la mente se vaya, regresa sin juicio. Cada regreso es la práctica.",
+    reminder:"Regresa suavemente al umbral de la respiración." },
+  { id:"expansion", title:"Fase II",     subtitle:"La Expansión",       duration:480, color:"#7a6e9e",
+    breath:[4000,4000,7000,4000],
+    intro:"Sin abandonar la respiración, amplía el campo de atención. Nota también el silencio entre una respiración y la siguiente. Ese instante de pausa, antes de inhalar, antes de exhalar. No lo fuerces. Solo nótalo cuando aparezca.",
+    reminder:"Observa la pausa entre respiraciones." },
+  { id:"observador",title:"Fase III",    subtitle:"El Observador",      duration:180, color:"#9e7a5a",
+    breath:[4000,5000,8000,5000],
+    intro:"Hacia el final, hazte suavemente esta pregunta, no para responderla con palabras, sino para sostenerla: ¿Quién está observando la respiración? Déjala flotar. No busques respuesta intelectual. Solo observa qué ocurre en el campo de la conciencia cuando esa pregunta aparece.",
+    reminder:"¿Quién observa?" },
+  { id:"cierre",    title:"Cierre",      subtitle:"El retorno",         duration:30,  color:"#4a6fa5",
+    breath:[4000,2000,6000,2000],
+    intro:"Tres respiraciones profundas y conscientes. Permite que la sesión se disuelva con gracia. Cuando estés listo, abre los ojos despacio.",
+    reminder:"Tres respiraciones. Luego abre los ojos." },
+];
+
+// ── State ──────────────────────────────────────────────────────────────────
+let phaseIndex   = 0;
+let timeLeft     = 0;
+let running      = false;
+let muted        = false;
+let mutedVoice   = false;
+let breathPhase  = "in";
+let breathStep   = 0;
+
+let timerInterval  = null;
+let breathTimeout  = null;
+let audioCtx       = null;
+let wakeLock       = null;
+let introSpoken    = false;
+
+// ── Stars ──────────────────────────────────────────────────────────────────
+(function buildStars() {
+  for (let i = 0; i < 30; i++) {
+    const s = document.createElement("div");
+    s.className = "star";
+    const big = i % 5 === 0;
+    s.style.cssText = `width:${big?2:1}px;height:${big?2:1}px;opacity:${0.1+(i%7)*0.05};top:${(i*37)%100}%;left:${(i*53)%100}%`;
+    document.body.appendChild(s);
+  }
+})();
+
+// ── Build home phase list ──────────────────────────────────────────────────
+(function buildPhaseList() {
+  const list = document.getElementById("phase-list");
+  const rows = [
+    {label:"Preparación", time:"2 min", color:"#4a6fa5"},
+    {label:"El Anclaje",  time:"5 min", color:"#5e8a6e"},
+    {label:"La Expansión",time:"8 min", color:"#7a6e9e"},
+    {label:"El Observador",time:"3 min",color:"#9e7a5a"},
+  ];
+  rows.forEach(r => {
+    const d = document.createElement("div");
+    d.className = "phase-row";
+    d.style.borderLeft = `2px solid ${r.color}40`;
+    d.innerHTML = `<span>${r.label}</span><span>${r.time}</span>`;
+    list.appendChild(d);
+  });
+})();
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+const fmt = s => `${String(Math.floor(s/60)).padStart(2,"0")}:${String(s%60).padStart(2,"0")}`;
+
+function speak(text) {
+  if (!window.speechSynthesis || mutedVoice) return;
+  window.speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = "es-MX"; u.rate = 0.82; u.pitch = 0.95; u.volume = 0.9;
+  const voices = window.speechSynthesis.getVoices();
+  const esVoice = voices.find(v => v.lang.startsWith("es")) || null;
+  if (esVoice) u.voice = esVoice;
+  window.speechSynthesis.speak(u);
+}
+// Ensure voices are loaded before first session
+if (window.speechSynthesis) window.speechSynthesis.getVoices();
+window.speechSynthesis?.addEventListener?.("voiceschanged", () => {});
+
+function playChime(type) {
+  if (muted || !audioCtx || audioCtx.state === "closed") return;
+  try {
+    if (audioCtx.state === "suspended") audioCtx.resume();
+    const master = audioCtx.createGain();
+    master.gain.setValueAtTime(0.7, audioCtx.currentTime);
+    master.connect(audioCtx.destination);
+    const tone = (freq, startT, dur, gain) => {
+      const osc = audioCtx.createOscillator();
+      const g   = audioCtx.createGain();
+      osc.connect(g); g.connect(master);
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(freq, audioCtx.currentTime + startT);
+      g.gain.setValueAtTime(0, audioCtx.currentTime + startT);
+      g.gain.linearRampToValueAtTime(gain,  audioCtx.currentTime + startT + 0.03);
+      g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + startT + dur);
+      osc.start(audioCtx.currentTime + startT);
+      osc.stop(audioCtx.currentTime  + startT + dur + 0.05);
+    };
+    if      (type==="in")   { tone(659.3,0,1.2,0.18); tone(784.0,0.16,1.4,0.13); }
+    else if (type==="hold") { tone(493.9,0,1.8,0.10); tone(987.8,0,0.5,0.04);    }
+    else if (type==="out")  { tone(392.0,0,1.6,0.14); tone(329.6,0.20,2.2,0.10); }
+  } catch(e) {}
+}
+
+// ── WakeLock ───────────────────────────────────────────────────────────────
+async function acquireWakeLock() {
+  try { if ("wakeLock" in navigator) wakeLock = await navigator.wakeLock.request("screen"); }
+  catch(e) {}
+}
+function releaseWakeLock() { wakeLock?.release(); wakeLock = null; }
+
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible" && running) acquireWakeLock();
+});
+
+// ── Breath cycle ───────────────────────────────────────────────────────────
+const CYCLE = ["in","hold","out","hold"];
+
+function stopBreathCycle() { clearTimeout(breathTimeout); }
+
+function startBreathCycle() {
+  stopBreathCycle();
+  breathStep = 0;
+  tickBreath();
+}
+
+function tickBreath() {
+  const bp   = CYCLE[breathStep % 4];
+  breathPhase = bp;
+  if (bp !== "hold" || breathStep % 4 === 1) playChime(bp);
+  updateOrbVisuals();
+  const dur = PHASES[phaseIndex].breath[breathStep % 4];
+  breathTimeout = setTimeout(tickBreath, dur);
+  breathStep++;
+}
+
+// ── UI render ──────────────────────────────────────────────────────────────
+function updateOrbVisuals() {
+  const phase = PHASES[phaseIndex];
+  const bp    = breathPhase;
+
+  const coreScale  = bp==="in"?1.22 : bp==="out"?0.72 : 1.0;
+  const coreOp     = bp==="in"?0.95 : bp==="out"?0.35 : 0.65;
+  const midScale   = bp==="in"?1.18 : bp==="out"?0.78 : 1.0;
+  const midOp      = bp==="in"?0.75 : bp==="out"?0.30 : 0.52;
+  const outerScale = bp==="in"?1.12 : bp==="out"?0.88 : 1.0;
+  const outerOp    = bp==="in"?0.40 : bp==="out"?0.10 : 0.25;
+  const dur        = bp==="in"?"4s" : bp==="out"?"6s" : "0.8s";
+
+  const core  = document.getElementById("orb-core");
+  const mid   = document.getElementById("orb-mid");
+  const outer = document.getElementById("orb-outer");
+  const label = document.getElementById("breath-label");
+
+  const c = phase.color;
+  core.style.cssText  += `background:radial-gradient(circle,#ffffff55 0%,${c}cc 35%,${c}66 65%,transparent 85%);box-shadow:0 0 30px ${c}80;transform:scale(${coreScale});opacity:${coreOp};transition:transform ${dur} cubic-bezier(0.45,0,0.55,1),opacity ${dur} ease;`;
+  mid.style.cssText   += `background:radial-gradient(circle,${c}88 0%,${c}44 45%,transparent 75%);box-shadow:0 0 80px ${c}50,0 0 160px ${c}25;transform:scale(${midScale});opacity:${midOp};transition:transform ${dur} cubic-bezier(0.45,0,0.55,1),opacity ${dur} ease;`;
+  outer.style.cssText += `background:radial-gradient(circle,${c}18 0%,transparent 70%);transform:scale(${outerScale});opacity:${outerOp};transition:transform ${dur} cubic-bezier(0.45,0,0.55,1),opacity ${dur} ease;`;
+
+  const labelColor = bp==="in"?"#a8d8ff" : bp==="out"?"#ffd8a8" : "#d8ffda";
+  const labelText  = bp==="in"?"inhala"   : bp==="out"?"exhala"  : "sostén";
+  label.textContent = labelText;
+  label.style.color = labelColor;
+  label.style.textShadow = `0 0 16px ${labelColor}`;
+  label.style.borderColor = `${labelColor}30`;
+  label.style.border = `1px solid ${labelColor}30`;
+}
+
+function renderSession() {
+  const phase = PHASES[phaseIndex];
+  const c     = phase.color;
+
+  // Phase dots
+  const dots = document.getElementById("phase-dots");
+  dots.innerHTML = "";
+  PHASES.slice(0,4).forEach((p,i) => {
+    const d = document.createElement("div");
+    d.className = "phase-dot" + ((i===phaseIndex||(phaseIndex===4&&i===3))?" active":"");
+    d.style.setProperty("--phase-color", phase.color);
+    d.style.width = (i===phaseIndex||(phaseIndex===4&&i===3)) ? "24px" : "8px";
+    if (i===phaseIndex||(phaseIndex===4&&i===3)) d.style.background = phase.color;
+    dots.appendChild(d);
+  });
+
+  document.getElementById("phase-tag").textContent  = phase.title;
+  document.getElementById("phase-tag").style.color   = c + "cc";
+  document.getElementById("phase-name").textContent  = phase.subtitle;
+
+  // Progress ring
+  const ring = document.getElementById("progress-ring");
+  const phaseDuration = phase.duration;
+  const prog = phaseDuration > 0 ? (1 - timeLeft/phaseDuration) : 0;
+  ring.style.strokeDasharray = `${prog*842} 842`;
+  ring.style.stroke = c;
+  ring.style.transition = "stroke-dasharray 1s linear";
+
+  // Play button
+  const btnPlay = document.getElementById("btn-play");
+  btnPlay.style.background = `radial-gradient(circle,${c}40,transparent)`;
+  btnPlay.style.borderColor = `${c}60`;
+  btnPlay.style.boxShadow   = `0 0 20px ${c}30`;
+  btnPlay.textContent = running ? "⏸" : "▶";
+
+  // Timer
+  document.getElementById("timer-display").textContent = fmt(timeLeft);
+  document.getElementById("timer-display").style.textShadow = `0 0 20px ${c}cc`;
+
+  updateOrbVisuals();
+}
+
+// ── Countdown ─────────────────────────────────────────────────────────────
+function startCountdown() {
+  clearInterval(timerInterval);
+  timerInterval = setInterval(() => {
+    if (!running) return;
+    timeLeft--;
+    if (timeLeft <= 0) {
+      clearInterval(timerInterval);
+      advancePhase();
+      return;
+    }
+    // Midpoint reminder
+    if (timeLeft === Math.floor(PHASES[phaseIndex].duration / 2)) {
+      speak(PHASES[phaseIndex].reminder);
+    }
+    renderSession();
+  }, 1000);
+}
+
+function advancePhase() {
+  if (phaseIndex < PHASES.length - 1) {
+    phaseIndex++;
+    timeLeft   = PHASES[phaseIndex].duration;
+    introSpoken = false;
+    startBreathCycle();
+    startCountdown();
+    speakIntro();
+    renderSession();
+  } else {
+    running = false;
+    releaseWakeLock();
+    window.speechSynthesis?.cancel();
+    speak("La sesión ha concluido. Tres respiraciones profundas. Abre los ojos cuando estés listo.");
+    showScreen("done");
+  }
+}
+
+function speakIntro() {
+  if (!introSpoken) {
+    introSpoken = true;
+    setTimeout(() => speak(PHASES[phaseIndex].intro), 800);
+  }
+}
+
+// ── Controls ───────────────────────────────────────────────────────────────
+function startSession() {
+  try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) {}
+  acquireWakeLock();
+  phaseIndex  = 0;
+  timeLeft    = PHASES[0].duration;
+  running     = true;
+  introSpoken = false;
+  showScreen("session");
+  renderSession();
+  startBreathCycle();
+  startCountdown();
+  speakIntro();
+}
+
+function togglePause() {
+  running = !running;
+  if (running) {
+    acquireWakeLock();
+    startCountdown();
+    startBreathCycle();
+  } else {
+    clearInterval(timerInterval);
+    stopBreathCycle();
+    releaseWakeLock();
+  }
+  document.getElementById("btn-play").textContent = running ? "⏸" : "▶";
+}
+
+function skipPhase() {
+  clearInterval(timerInterval);
+  stopBreathCycle();
+  if (phaseIndex < PHASES.length - 1) {
+    phaseIndex++;
+    timeLeft    = PHASES[phaseIndex].duration;
+    introSpoken = false;
+    running     = true;
+    startBreathCycle();
+    startCountdown();
+    speakIntro();
+    renderSession();
+  } else {
+    resetSession();
+  }
+}
+
+function toggleMute() {
+  muted = !muted;
+  const btn = document.getElementById("btn-mute");
+  btn.textContent = muted ? "🔇" : "🔔";
+  btn.classList.toggle("muted", muted);
+}
+
+function toggleVoice() {
+  mutedVoice = !mutedVoice;
+  if (mutedVoice) window.speechSynthesis?.cancel();
+  const btn = document.getElementById("btn-voice");
+  btn.textContent = mutedVoice ? "🔕" : "🗣️";
+  btn.classList.toggle("muted", mutedVoice);
+  btn.title = mutedVoice ? "Activar voz" : "Silenciar voz";
+}
+
+function resetSession() {
+  clearInterval(timerInterval);
+  stopBreathCycle();
+  window.speechSynthesis?.cancel();
+  audioCtx?.close(); audioCtx = null;
+  releaseWakeLock();
+  running     = false;
+  phaseIndex  = 0;
+  timeLeft    = 0;
+  breathPhase = "in";
+  introSpoken = false;
+  showScreen("home");
+}
+
+function showScreen(id) {
+  document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+}
+</script>
+<script>
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("/sw.js")
+        .then(r => console.log("SW registrado:", r.scope))
+        .catch(e => console.warn("SW error:", e));
+    });
+  }
+</script>
+</body>
+</html>
